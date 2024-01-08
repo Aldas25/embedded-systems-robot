@@ -11,3 +11,13 @@
 // OLED screen
 #define OLED_SCL_PIN PB6
 #define OLED_SDA_PIN PB7
+
+// Infrared sensors
+#define LEFT_INFRARED_PIN PA1
+#define RIGHT_INFRARED_PIN PA0
+
+// Ultrasound sensors
+#define FRONT_ULTRASOUND_TRIG_PIN PA10
+#define FRONT_ULTRASOUND_ECHO_PIN PB9
+#define SIDE_ULTRASOUND_TRIG_PIN PA9
+#define SIDE_ULTRASOUND_ECHO_PIN PB8

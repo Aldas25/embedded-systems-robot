@@ -7,6 +7,8 @@ void setupMotors() {
     pinMode(LEFT_MOTOR_BACKWARD_PIN, OUTPUT);
     pinMode(RIGHT_MOTOR_FORWARD_PIN, OUTPUT);
     pinMode(RIGHT_MOTOR_BACKWARD_PIN, OUTPUT);
+
+    turnMotorsDigital(OFF, OFF);
 }
 
 void turnOneMotorDigital(uint32_t forwardPin, uint32_t backwardPin, MotorMode mode) {
