@@ -1,0 +1,13 @@
+// LEDs
+#define YELLOW_LED_PIN PB2
+#define RED_LED_PIN PB1
+
+// HBridge (motors)
+#define RIGHT_MOTOR_BACKWARD_PIN PB15
+#define RIGHT_MOTOR_FORWARD_PIN PB14
+#define LEFT_MOTOR_FORWARD_PIN PB3
+#define LEFT_MOTOR_BACKWARD_PIN PA8
+
+// OLED screen
+#define OLED_SCL_PIN PB6
+#define OLED_SDA_PIN PB7
