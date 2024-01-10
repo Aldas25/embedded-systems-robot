@@ -25,10 +25,8 @@ void setupOLEDScreen() {
     display.clearDisplay();
 }
 
-void printAllLines(bool clearScreen=true) {
-    if (clearScreen) {
-        display.clearDisplay();
-    }
+void printAllLines() {
+    display.clearDisplay();
 
     // Text settings
     display.setTextSize(1);
@@ -47,7 +45,12 @@ void printTextToOLED(std::string text, int lineNumber, bool clearScreen) {
         return;
     }
 
+    if (clearScreen) {
+        for (int line = 0; line < lineNumber; line++) {
+            textInLines[line] = "";
+        }
+    }
     textInLines[lineNumber] = text;
-    printAllLines(clearScreen);
+    printAllLines();
 }
 
