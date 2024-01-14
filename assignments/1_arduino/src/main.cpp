@@ -26,6 +26,8 @@ void setup() {
     // printTextToOLED("SPIN", 0, true);
     // turnMotorsDigital(FORWARD, OFF);
     // delay(10000);
+
+    turnMotorsAnalog(FORWARD, FORWARD, 127, 127);
 }
 
 bool yellowOn = true;
@@ -33,12 +35,13 @@ uint32_t motorSpeed = 255;
 
 void loop() {
     // Slowing motors down
-    printTextToOLED("Speed: " + std::to_string(motorSpeed), 0, true);
-    turnMotorsAnalog(FORWARD, FORWARD, motorSpeed, motorSpeed);
-    if (motorSpeed >= 10)
+    //printTextToOLED("Speed: " + std::to_string(motorSpeed), 0, true);
+   /* turnMotorsAnalog(FORWARD, FORWARD, motorSpeed, motorSpeed);
+    if (motorSpeed > 10)
         motorSpeed -= 10;
-    else motorSpeed = 0;
-
+    else
+        motorSpeed = 0;
+*/
     // LEDs blinking
     yellowOn = !yellowOn;
     digitalWrite(YELLOW_LED_PIN, yellowOn);

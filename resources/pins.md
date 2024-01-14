@@ -19,10 +19,10 @@ ultrasound sensors
 
 H bridge
 - gnd, vcc -> 5V
-- B-IA (right backward) -> B15
-- B-IB (right forward) -> B14
-- A-IA (left forward) -> B3
-- A-IB (left backward) -> A8
+- B-IA (left backward) -> B15
+- B-IB (left forward) -> B14
+- A-IA (right forward) -> B3
+- A-IB (right backward) -> A8
 
 LEDs
 - short -> GND
