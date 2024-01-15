@@ -44,7 +44,6 @@ int main() {
 }
 */
 
-
 int main(void) {
 
   // GPIO enable pin output modes, alternate function push pull (GPIOx_CRH)
