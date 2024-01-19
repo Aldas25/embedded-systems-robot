@@ -5,9 +5,9 @@
 
 void setupUltrasoundSensors() {
     pinMode(FRONT_ULTRASOUND_ECHO_PIN, INPUT);
-    pinMode(SIDE_ULTRASOUND_ECHO_PIN, INPUT);
+   // pinMode(SIDE_ULTRASOUND_ECHO_PIN, INPUT);
     pinMode(FRONT_ULTRASOUND_TRIG_PIN, OUTPUT);
-    pinMode(SIDE_ULTRASOUND_TRIG_PIN, OUTPUT);
+   // pinMode(SIDE_ULTRASOUND_TRIG_PIN, OUTPUT);
 }
 
 float getUltrasoundDistanceCm(uint32_t trigPin, uint32_t echoPin) {

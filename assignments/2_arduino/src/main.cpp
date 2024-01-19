@@ -61,36 +61,46 @@ void setup() {
     // Give time for hardware to initialize (solves stupid bug somehow...)
     delay(1000);
 
+    setupUltrasoundSensors();
+
     pinMode(YELLOW_LED_PIN, OUTPUT);
     pinMode(RED_LED_PIN, OUTPUT);
 
-    setupMotors(false);
-    setupUltrasoundSensors();
-    setupOLEDScreen();
+    // setupMotors(false);
+    // setupUltrasoundSensors();
+    // setupOLEDScreen();
 
-    printTextToOLED("Hello", 0, true);
-    printTextToOLED("World", 1, false);
-    delay(2000);
+    // printTextToOLED("Hello", 0, true);
+    // printTextToOLED("World", 1, false);
+    // delay(2000);
 
-    transitionToForward();
+    // transitionToForward();
 }
 
 void loop() {
-    while(true) {
-        float distanceCm = getFrontUltrasoundDistanceCm();
-        switch (currentState) {
-            case STATE_FORWARD:
-                doStateForward(distanceCm);
-                break;
-            case STATE_BACKWARD:
-                doStateBackward(distanceCm);
-                break;
-            case STATE_STOP:
-                doStateStop(distanceCm);
-                break;
-            default:
-                printf("Should not hapen!...");
-                exit(1);
-        }
+    float distanceCm = getFrontUltrasoundDistanceCm();
+
+    if (distanceCm < 15) {
+        digitalWrite(YELLOW_LED_PIN, 1);
+    }else {
+        digitalWrite(YELLOW_LED_PIN, LOW);
     }
+
+    // while(true) {
+    //     float distanceCm = getFrontUltrasoundDistanceCm();
+    //     switch (currentState) {
+    //         case STATE_FORWARD:
+    //             doStateForward(distanceCm);
+    //             break;
+    //         case STATE_BACKWARD:
+    //             doStateBackward(distanceCm);
+    //             break;
+    //         case STATE_STOP:
+    //             doStateStop(distanceCm);
+    //             break;
+    //         default:
+    //             printf("Should not hapen!...");
+    //             exit(1);
+    //     }
+    // }
 }
