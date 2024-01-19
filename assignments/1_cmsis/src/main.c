@@ -8,7 +8,12 @@
 #define L_FORWARD 10
 #define L_BACKWARD 11
 #define RED_LED 1
+#define YELLOW_LED 2
 #define MASK(x) (1L << (x))
+#define T_CCR_L_BACKWARD TIM1->CCR3
+#define T_CCR_L_FORWARD TIM1->CCR4
+#define T_CCR_R_BACKWARD TIM1->CCR2
+#define T_CCR_R_FORWARD TIM1->CCR1
 
 int motorCCR = 2500;
 int prescaler = 16;
@@ -24,6 +29,7 @@ void setupTimer() {
 
   // Capture/compare enable register: enable CCxE
   TIM1->CCER |= TIM_CCER_CC1E | TIM_CCER_CC2E | TIM_CCER_CC3E | TIM_CCER_CC4E;
+  // Auto-reload preload enable
   TIM1->CR1 |= TIM_CR1_ARPE;
 
   // Set channel modes to PW mode 1 ("110") and enable preload
@@ -46,8 +52,9 @@ void setupAll() {
   RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
   RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;
 
-  // Setup LED pin mode (B1)
+  // Setup LEDs pin mode (B1, B2)
   GPIOB->MODER |= GPIO_MODER_MODE1_0;
+  GPIOB->MODER |= GPIO_MODER_MODE2_0;
   
   // Setup Motor pin modes (A8-A11) all to Alt.Functions (mode "10")
   GPIOA->MODER |= GPIO_MODER_MODE8_1 | GPIO_MODER_MODE9_1 | GPIO_MODER_MODE10_1 | GPIO_MODER_MODE11_1; 
@@ -60,40 +67,94 @@ void setupAll() {
   setupTimer();
 }
 
-int convertToCcrValue(float speed) {
-  if (speed < 0.0f) {
-    speed = -speed;
-  }
+void warmMotors() {
+  GPIOB->ODR ^= MASK(YELLOW_LED);
 
-  float converted = speed * (float)motorCCR;
-  return motorCCR - (int)converted;
+  ms_delay(500);
+  TIM1->CCR1 = 100;
+  TIM1->CCR3 = 100;
+  ms_delay(2000);
+
+  TIM1->CCR1 = motorCCR;
+  TIM1->CCR3 = motorCCR;
+  GPIOB->ODR &= ~MASK(YELLOW_LED);
 }
 
-void setMotorSpeed(float leftMotor, float rightMotor) {
-  TIM1->CCR1 = 2500;
-  TIM1->CCR2 = 2500;
+void testMotorsDigital() {
+  // Setup RCC (turn on power on GPIOA, GPIOB and TIM1)
+  RCC->AHB1ENR |= RCC_AHB1ENR_GPIOBEN;
+  RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
 
-  if (leftMotor >= 0.0f) {
-    TIM1->CCR4 = 2500; // backward no speed
-    TIM1->CCR3 = convertToCcrValue(leftMotor);
+  // Setup LEDs pin mode (B1, B2)
+  GPIOB->MODER |= GPIO_MODER_MODE1_0;
+  GPIOB->MODER |= GPIO_MODER_MODE2_0;
+  
+  // Setup Motor pin modes (A8-A11) all to Output (mode "01")
+  GPIOA->MODER |= GPIO_MODER_MODE8_0 | GPIO_MODER_MODE9_0 | GPIO_MODER_MODE10_0 | GPIO_MODER_MODE11_0; 
+
+  GPIOA->ODR |= MASK(L_FORWARD);
+  GPIOA->ODR |= MASK(R_BACKWARD);
+}
+
+int halfSpeed = 400;
+int fullSpeed = 10;
+int noSpeed = 1500;
+
+void driveHalfSpeed() {
+  GPIOB->ODR ^= MASK(YELLOW_LED);
+
+  T_CCR_L_FORWARD = halfSpeed;
+  T_CCR_R_FORWARD = halfSpeed;
+  s_delay(3);
+
+  GPIOB->ODR &= ~MASK(YELLOW_LED);
+}
+
+void driveFullSpeed() {
+  GPIOB->ODR ^= MASK(RED_LED);
+
+  T_CCR_L_FORWARD = fullSpeed;
+  T_CCR_R_FORWARD = fullSpeed;
+  s_delay(3);
+
+  GPIOB->ODR &= ~MASK(RED_LED);
+}
+
+void slowDown() {
+  GPIOB->ODR ^= MASK(YELLOW_LED);
+
+  int curSpeed = fullSpeed;
+
+  while (curSpeed < noSpeed) {
+    curSpeed += 100;
+    T_CCR_L_FORWARD = curSpeed;
+    T_CCR_R_FORWARD = curSpeed;
+    ms_delay(500);
   }
+
+  T_CCR_L_FORWARD = motorCCR;
+  T_CCR_R_FORWARD = motorCCR;
+
+  GPIOB->ODR &= ~MASK(YELLOW_LED);
 }
 
 int main(void) {
+  // The following lines only for testing
+ // testMotorsDigital();
+ // return 0;
+
   setupAll();
+ // warmMotors();
   ms_delay(1000);
 
-  int curSpeed = 0.3f;
-  while (curSpeed < 0.9f) {
-    setMotorSpeed(curSpeed, 0);
-    ms_delay(1000);
-    curSpeed += 0.1f;
-  }
+  driveHalfSpeed();
+  driveFullSpeed();
+  slowDown();
 
   // Main loop: switching LED
   while (true) {
     GPIOB->ODR ^= MASK(RED_LED);
-    ms_delay(300U);
+    ms_delay(1000U);
   }
 
   return 0;
