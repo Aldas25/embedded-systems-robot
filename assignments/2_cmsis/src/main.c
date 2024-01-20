@@ -34,7 +34,7 @@ void setup() {
   // Turn on power by turning RCC in GPIOB, GPIOA
   RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOBEN;
   RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
-  RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
+  RCC->APB1ENR |= RCC_APB1ENR_TIM2EN | RCC_APB1ENR_TIM3EN;
 
   // Both LED mode output ("01")
   GPIOB->MODER |= GPIO_MODER_MODE1_0 | GPIO_MODER_MODE2_0;
@@ -51,12 +51,14 @@ void setup() {
 
  setupFrontUltrasoundInterrupts();
 
-  // Setup timers
+  // Setup timers, TIM2 for 10us delay, TIM3 for interrupts for Echo
   //TIM2->PSC = 16 - 1; // max value 
   // 32 seconds = 500 * 1000 * 1000
   // then, 1 us = 15.625 TIM2 ticks
   // then, 235 ticks should be enough for 10 us
   TIM2->ARR = 10000;
+  
+  TIM3->ARR = 10000;
 }
 
 void ten_microseconds_delay() {
@@ -70,15 +72,17 @@ void ten_microseconds_delay() {
 }
 
 int timerTicks;
+int interruptState = 0; // 0 - don't do anything, 1 - start timer, 2 - stop timer
 
 float readFrontSensor() {
-  float distance_to_return = 0;
+  interruptState = 1; // starting timer state
+  //float distance_to_return = 0;
   timerTicks = 0;
 
   // Send 10 us Trig pulse
   GPIOA->ODR |= MASK(FRONT_TRIG);
-  ms_delay(1);
-  //ten_microseconds_delay(); 
+  // ms_delay(1);
+  ten_microseconds_delay(); 
   // ms_delay(1000);
   GPIOA->ODR &= ~MASK(FRONT_TRIG);
 
@@ -86,47 +90,44 @@ float readFrontSensor() {
 
   ms_delay(10); // just to be sure that the interrupts happened
 
+  // close interrupt and timer
+  interruptState = 0; // don't care state
+  //TIM3->CR1 &= ~TIM_CR1_CEN; // stop timer
+
   if (timerTicks == 0) return 0; // no interrupt happened
-  float duration_us = (float) timerTicks / 15.625f; 
-  distance_to_return = (float) duration_us * 0.017f; 
-  return distance_to_return;
+  // 6000 ticks = ~20 cm
+  // 1 cm = 6000/20 ticks= 300 ticks
+  float distanceCm = (float)timerTicks / 100.0f; 
+  return distanceCm;
 }
 
 void EXTI9_5_IRQHandler() {
   if (!(EXTI->PR & EXTI_PR_PR9)) {
     return;
   } 
-//return;
   EXTI->PR |= EXTI_PR_PR9;
 
+  if (interruptState == 0) return;
+
   // If timer enabled
-  if ((TIM2->CR1) & (TIM_CR1_CEN)) {
-    TIM2->CR1 &= ~TIM_CR1_CEN;
-    timerTicks = TIM2->CNT;
-  } else {
-    TIM2->CNT = 0;
-    TIM2->CR1 |= TIM_CR1_CEN;
+  if (interruptState == 2) {
+    timerTicks = TIM3->CNT;
+    TIM3->CR1 &= ~TIM_CR1_CEN;
+    interruptState = 0; // don't care
+  } else { // interrupt state == 1
+    TIM3->CNT = 0;
+    TIM3->CR1 |= TIM_CR1_CEN;
+    interruptState = 2; // next action is stop timer
   }
 }
 
 int main(void) {
   setup();
-  ms_delay(1000);
-
-  GPIOB->ODR |= MASK(1);
-
-  for (int i = 0; i < 100 * 1000 * 10; i++) {
-    ten_microseconds_delay();
-  }
-
-  GPIOB->ODR &= ~MASK(1);
-
-  return 0;
 
   // Main loop
   while (true) {
     float distanceCm = readFrontSensor();
-    if (distanceCm != 0 && distanceCm < 5) {
+    if (distanceCm != 0 && distanceCm < 20) {
       GPIOB->ODR |= MASK(YELLOW_LED);
       GPIOB->ODR &= ~MASK(RED_LED);
     } else {
