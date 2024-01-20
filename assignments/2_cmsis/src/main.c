@@ -13,6 +13,12 @@
 #define MASK(x) (1UL << (x))
 #define FRONT_ECHO_VALUE (GPIOB->IDR & MASK(FRONT_ECHO))
 
+// motors: A8-A11
+#define L_FORWARD 10
+#define L_BACKWARD 11
+#define R_BACKWARD 8
+#define R_FORWARD 9
+
 void setupFrontUltrasoundInterrupts() {
   // Set external interrupts for the Echo pin (B9)
   EXTI->IMR |= EXTI_IMR_MR9;
@@ -43,10 +49,21 @@ void setup() {
   GPIOA->MODER &= ~GPIO_MODER_MODE15;
   GPIOA->MODER |= GPIO_MODER_MODE15_0;
   
-  GPIOB->PUPDR |= GPIO_PUPDR_PUPD9_0; // "01" pull-up
+  //GPIOB->PUPDR |= GPIO_PUPDR_PUPD9_0; // "01" pull-up
 
   // Echo mode input ("00")
   GPIOB->MODER  &= ~GPIO_MODER_MODE9;
+
+  // motors (A8-A11) mode output ("01")
+  GPIOA->MODER &= ~GPIO_MODER_MODE8;
+  GPIOA->MODER &= ~GPIO_MODER_MODE9;
+  GPIOA->MODER &= ~GPIO_MODER_MODE10;
+  GPIOA->MODER &= ~GPIO_MODER_MODE11;
+
+  GPIOA->MODER |= GPIO_MODER_MODE8_0;
+  GPIOA->MODER |= GPIO_MODER_MODE9_0;
+  GPIOA->MODER |= GPIO_MODER_MODE10_0;
+  GPIOA->MODER |= GPIO_MODER_MODE11_0;
 
 
  setupFrontUltrasoundInterrupts();
@@ -58,15 +75,22 @@ void setup() {
   // then, 235 ticks should be enough for 10 us
   TIM2->ARR = 10000;
   
-  TIM3->ARR = 10000;
+  TIM3->PSC = 1023; // 2^10 - 1
+  TIM3->ARR = 655355;
+
+  // update (clear) counter and prescaler reg.
+  TIM2->EGR |= TIM_EGR_UG; 
+  TIM3->EGR |= TIM_EGR_UG;
 }
 
 void ten_microseconds_delay() {
-  TIM2->CNT = 0;
+//  TIM2->CNT = 0;
+  TIM2->EGR |= TIM_EGR_UG; 
+
   TIM2->CR1 |= TIM_CR1_CEN;
 
   // a bit more than 10 us
-  while ((TIM2->CNT) < 200) {}
+  while ((TIM2->CNT) < 300) {}
 
   TIM2->CR1 &= ~TIM_CR1_CEN;
 }
@@ -81,9 +105,8 @@ float readFrontSensor() {
 
   // Send 10 us Trig pulse
   GPIOA->ODR |= MASK(FRONT_TRIG);
-  // ms_delay(1);
-  ten_microseconds_delay(); 
-  // ms_delay(1000);
+  //  ms_delay(1);
+ ten_microseconds_delay(); 
   GPIOA->ODR &= ~MASK(FRONT_TRIG);
 
 //  while ((GPIOB->IDR) & (MASK(9)) == 0)
@@ -97,7 +120,7 @@ float readFrontSensor() {
   if (timerTicks == 0) return 0; // no interrupt happened
   // 6000 ticks = ~20 cm
   // 1 cm = 6000/20 ticks= 300 ticks
-  float distanceCm = (float)timerTicks / 100.0f; 
+  float distanceCm = (float)timerTicks; 
   return distanceCm;
 }
 
@@ -115,19 +138,91 @@ void EXTI9_5_IRQHandler() {
     TIM3->CR1 &= ~TIM_CR1_CEN;
     interruptState = 0; // don't care
   } else { // interrupt state == 1
-    TIM3->CNT = 0;
+    TIM3->EGR |= TIM_EGR_UG;
+    // TIM3->CNT = 0;
     TIM3->CR1 |= TIM_CR1_CEN;
     interruptState = 2; // next action is stop timer
   }
 }
 
+void motorsForward() {
+  GPIOA->ODR &= ~MASK(L_BACKWARD);
+  GPIOA->ODR &= ~MASK(R_BACKWARD);
+  GPIOA->ODR |= MASK(L_FORWARD);
+  GPIOA->ODR |= MASK(R_FORWARD);
+
+  // Turn on yellow led
+  GPIOB->ODR &= ~MASK(RED_LED);
+  GPIOB->ODR |= MASK(YELLOW_LED);
+}
+
+void motorsBackward() {
+  GPIOA->ODR &= ~MASK(L_FORWARD);
+  GPIOA->ODR &= ~MASK(R_FORWARD);
+  GPIOA->ODR |= MASK(L_BACKWARD);
+  GPIOA->ODR |= MASK(R_BACKWARD);
+
+  // Turn on both leds
+  GPIOB->ODR |= MASK(RED_LED);
+  GPIOB->ODR |= MASK(YELLOW_LED);
+}
+
+void motorsStill() {
+  // no move
+  GPIOA->ODR &= ~MASK(L_BACKWARD);
+  GPIOA->ODR &= ~MASK(R_BACKWARD);
+  GPIOA->ODR &= ~MASK(L_FORWARD);
+  GPIOA->ODR &= ~MASK(R_FORWARD);
+
+  // Turn on red led
+  GPIOB->ODR |= MASK(RED_LED);
+  GPIOB->ODR &= ~MASK(YELLOW_LED);
+}
+
 int main(void) {
   setup();
+
+  // Give a kick of full speed to motors for one second.
+  motorsForward();
+  ms_delay(1000);
+  motorsStill();
+  ms_delay(1000);
+
+  // In Arduino, I implemented this with Finite State Machine
+  // But as it is not necessary to have a nice FSM, here I will
+  // just use if statements.
+
+  while (true) {
+    float distanceCm = readFrontSensor();
+    if (timerTicks == 0 || distanceCm > 30.0f) {
+      // Can still drive forward.
+      motorsForward();
+    } else if (distanceCm < 10.0f) {
+      // Drive back.
+      motorsBackward();
+    } else {
+      // Stay still.
+      motorsStill();
+    }
+
+    ms_delay(100);
+  }
+
+  return 0;
+}
+
+// below main loop is for testing the ultrasonic front sensor
+/*
+int main(void) {
+  setup();
+
+  // GPIOA->ODR |= MASK(L_FORWARD);
+  // GPIOA->ODR |= MASK(R_FORWARD);
 
   // Main loop
   while (true) {
     float distanceCm = readFrontSensor();
-    if (distanceCm != 0 && distanceCm < 20) {
+    if (timerTicks != 0 && distanceCm < 20) {
       GPIOB->ODR |= MASK(YELLOW_LED);
       GPIOB->ODR &= ~MASK(RED_LED);
     } else {
@@ -139,3 +234,4 @@ int main(void) {
 
   return 0;
 }
+*/
