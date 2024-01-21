@@ -25,7 +25,7 @@
 #define T_CCR_R_FORWARD TIM1->CCR1
 
 #define L_SPEED 600
-#define R_SPEED 500
+#define R_SPEED 400
 
 // US: Front trig A15, echo B9
 // US: Side trig B3, echo B8
@@ -414,20 +414,22 @@ void turnAndDriveABit() {
   GPIOB->ODR &= ~MASK(RED_LED);
 }
 
-void goAroundTheObstacle() {
+void goAroundTheObstacle(bool searchForLine) {
   while (true) {
-    bool left = readIRLeft();
-    bool right = readIRRight();
+    if (searchForLine) {
+      bool left = readIRLeft();
+      bool right = readIRRight();
 
-    if (left || right) {
-      // stop this phase, now will need to continue the line
-      stopMotors();
-      return;
+      if (left || right) {
+        // stop this phase, now will need to continue the line
+        stopMotors();
+        return;
+      }
     }
 
     float sideSensorDistanceCm = readSideSensor();
 
-    if (timerTicks != 0 && sideSensorDistanceCm < 25.0f) {
+    if (timerTicks != 0 && sideSensorDistanceCm < 27.0f) {
       // still drive forward (obstacle is too close on the side)
       driveForward();
       GPIOB->ODR &= ~MASK(YELLOW_LED);
@@ -435,12 +437,14 @@ void goAroundTheObstacle() {
       // turn a bit
       driveRightForward();
       GPIOB->ODR |= MASK(YELLOW_LED);
-      ms_delay(800);
+      ms_delay(700);
       driveForward();
-      ms_delay(800);
+      ms_delay(1200);
+      stopMotors();
+      return;
     }
 
-    ms_delay(200);
+    ms_delay(100);
   }
 }
 
@@ -451,7 +455,9 @@ int main(void) {
   // Could be in a while loop, but now it's also good enough :)
   goByLine(); // until the obstacle is in front
   turnAndDriveABit(); // just to move from the line
-  goAroundTheObstacle(); // until the line is found again
+  goAroundTheObstacle(false); // will make the first turn (right forward)
+  goAroundTheObstacle(false); // will make the second turn (right forward)
+  goAroundTheObstacle(true); // until the line is found again
   goByLine(); // continue the line
 
   // Mark end
