@@ -24,8 +24,8 @@
 #define T_CCR_R_BACKWARD TIM1->CCR2
 #define T_CCR_R_FORWARD TIM1->CCR1
 
-#define L_SPEED 600
-#define R_SPEED 400
+#define L_SPEED 300
+#define R_SPEED 200
 
 // US: Front trig A15, echo B9
 // US: Side trig B3, echo B8
@@ -336,12 +336,19 @@ void stopMotors() {
   T_CCR_R_FORWARD = motorCCR;
 }
 
+bool forwardSlower = false;
+
 void driveForward() {
   T_CCR_L_BACKWARD = motorCCR;
   T_CCR_R_BACKWARD = motorCCR;
 
-  T_CCR_L_FORWARD = L_SPEED;
-  T_CCR_R_FORWARD = R_SPEED;
+  if (!forwardSlower) {
+    T_CCR_L_FORWARD = L_SPEED;
+    T_CCR_R_FORWARD = R_SPEED;
+  } else {
+    T_CCR_L_FORWARD = 500;
+    T_CCR_R_FORWARD = 400;
+  }
 }
 
 void driveLeftForward() {
@@ -360,17 +367,29 @@ void driveRightForward() {
   T_CCR_R_FORWARD = R_SPEED;
 }
 
+void driveRightFAST() {
+  T_CCR_L_FORWARD = motorCCR;
+  T_CCR_R_BACKWARD = motorCCR;
+
+  T_CCR_R_FORWARD = 50;
+  ms_delay(20);
+
+  T_CCR_L_BACKWARD = 100;
+}
+
 void goByLine() { 
   while (true) {
     float distanceCm = readFrontSensor();
 
-    if (timerTicks != 0 && distanceCm < 20.0f) {
+    if (timerTicks != 0 && distanceCm < 10.0f) {
       stopMotors();
       return; // stop going by line
     }
 
     bool left = readIRLeft();
     bool right = readIRRight();
+
+    if (left || right) forwardSlower = false;
 
     if (left) {
       GPIOB->ODR |= MASK(YELLOW_LED);
@@ -406,7 +425,7 @@ void turnAndDriveABit() {
   GPIOB->ODR |= MASK(RED_LED);
 
   driveLeftForward();
-  ms_delay(750);
+  ms_delay(600);
   driveForward();
   ms_delay(800);
   stopMotors();
@@ -435,11 +454,11 @@ void goAroundTheObstacle(bool searchForLine) {
       GPIOB->ODR &= ~MASK(YELLOW_LED);
     } else {
       // turn a bit
-      driveRightForward();
+      driveRightFAST();
       GPIOB->ODR |= MASK(YELLOW_LED);
-      ms_delay(700);
+      ms_delay(800);
       driveForward();
-      ms_delay(1200);
+      ms_delay(1500);
       stopMotors();
       return;
     }
@@ -458,6 +477,7 @@ int main(void) {
   goAroundTheObstacle(false); // will make the first turn (right forward)
   goAroundTheObstacle(false); // will make the second turn (right forward)
   goAroundTheObstacle(true); // until the line is found again
+  forwardSlower = true;
   goByLine(); // continue the line
 
   // Mark end

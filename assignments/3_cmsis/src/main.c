@@ -208,8 +208,8 @@ int main(void) {
       T_CCR_L_BACKWARD = motorCCR;
       T_CCR_R_BACKWARD = motorCCR;
 
-      T_CCR_L_FORWARD = L_SPEED + 200;
-      T_CCR_R_FORWARD = R_SPEED + 200;
+      T_CCR_L_FORWARD = L_SPEED + 50;
+      T_CCR_R_FORWARD = R_SPEED + 50;
     }
 
     ms_delay(100U);
