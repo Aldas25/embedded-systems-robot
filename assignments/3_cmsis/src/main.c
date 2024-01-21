@@ -24,8 +24,8 @@
 #define T_CCR_R_BACKWARD TIM1->CCR2
 #define T_CCR_R_FORWARD TIM1->CCR1
 
-#define L_SPEED 800
-#define R_SPEED 800
+#define L_SPEED 700
+#define R_SPEED 700
 
 #define MASK(x) (1L << (x))
 
@@ -208,8 +208,8 @@ int main(void) {
       T_CCR_L_BACKWARD = motorCCR;
       T_CCR_R_BACKWARD = motorCCR;
 
-      T_CCR_L_FORWARD = L_SPEED;
-      T_CCR_R_FORWARD = R_SPEED;
+      T_CCR_L_FORWARD = L_SPEED + 200;
+      T_CCR_R_FORWARD = R_SPEED + 200;
     }
 
     ms_delay(100U);
