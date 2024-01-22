@@ -31,7 +31,7 @@
 #define T_CCR_R_FORWARD TIM1->CCR1
 
 #define L_SPEED 300
-#define R_SPEED 200
+#define R_SPEED 150
 
 // US: Front trig A15, echo B9
 // US: Side trig B3, echo B8
@@ -462,9 +462,9 @@ void goAroundTheObstacle(bool searchForLine) {
       // turn a bit
       driveRightFAST();
       GPIOB->ODR |= MASK(YELLOW_LED);
-      ms_delay(800);
+      ms_delay(500);
       driveForward();
-      ms_delay(1500);
+      ms_delay(1000);
       stopMotors();
       return;
     }

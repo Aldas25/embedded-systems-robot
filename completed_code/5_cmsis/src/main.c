@@ -30,8 +30,8 @@
 #define T_CCR_R_BACKWARD TIM1->CCR2
 #define T_CCR_R_FORWARD TIM1->CCR1
 
-#define L_SPEED 400
-#define R_SPEED 300
+#define L_SPEED 150
+#define R_SPEED 100
 
 // wheel sensors: right B13, left B12
 #define R_WHEEL_SENSOR 13
@@ -278,8 +278,11 @@ float getDrivenDistanceM() {
   // so 1 change is 1 cm
   // so 100 changes is 1 m
 
+ 
   float totalChanges = (float) leftWheelSensorChanges + (float) rightWheelSensorChanges;
-  return totalChanges / 100.0f;
+  float dist = totalChanges / 100.0f;
+  dist *= 0.8f;
+  return dist;
 }
 
 void stopMotors() {
@@ -295,7 +298,7 @@ int main(void) {
 
   // Main loop
   while (true) {
-    if (getDrivenDistanceM() >= 1.5f) {
+    if (getDrivenDistanceM() >= 1.48f) {
       stopMotors();
       break;
     }
@@ -348,9 +351,13 @@ int main(void) {
 
       T_CCR_L_FORWARD = L_SPEED;
       T_CCR_R_FORWARD = R_SPEED;
-      ms_delay(100U);
     }
 
+    
+      ms_delay(150U);
+
+      stopMotors();
+      ms_delay(50);
 
    // NVIC_EnableIRQ(EXTI15_10_IRQn);
   }

@@ -200,7 +200,7 @@ int main(void) {
 
   while (true) {
     float distanceCm = readFrontSensor();
-    if (timerTicks == 0 || distanceCm > 30.0f) {
+    if (timerTicks == 0 || distanceCm > 20.0f) {
       // Can still drive forward.
       motorsForward();
     } else if (distanceCm < 10.0f) {

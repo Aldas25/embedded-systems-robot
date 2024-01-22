@@ -17,8 +17,13 @@
 #define IR_LEFT 1
 #define IR_RIGHT 0
 
-#define IR_RIGHT_THRESHOLD 1000
-#define IR_LEFT_THRESHOLD 1200
+// #define IR_RIGHT_THRESHOLD 100
+// #define IR_LEFT_THRESHOLD 120
+
+
+#define IR_RIGHT_THRESHOLD 500
+#define IR_LEFT_THRESHOLD 700
+
 
 // motors (A8 - A11)
 #define R_BACKWARD 8
@@ -30,8 +35,8 @@
 #define T_CCR_R_BACKWARD TIM1->CCR2
 #define T_CCR_R_FORWARD TIM1->CCR1
 
-#define L_SPEED 700
-#define R_SPEED 700
+#define L_SPEED 250
+#define R_SPEED 150
 
 #define MASK(x) (1L << (x))
 
@@ -168,6 +173,13 @@ void warmMotors() {
   ms_delay(2000);
 }
 
+void stopMotors() {
+  T_CCR_L_BACKWARD = motorCCR;
+  T_CCR_L_FORWARD = motorCCR;
+  T_CCR_R_BACKWARD = motorCCR;
+  T_CCR_R_FORWARD = motorCCR;
+}
+
 int main(void) {
   setup();
   warmMotors();
@@ -191,34 +203,35 @@ int main(void) {
 
     if (left && right) {
       // f*ck, stop
-      T_CCR_L_BACKWARD = motorCCR;
-      T_CCR_L_FORWARD = motorCCR;
-      T_CCR_R_BACKWARD = motorCCR;
-      T_CCR_R_FORWARD = motorCCR;
+      stopMotors();
     } else if (left) {
       // right forward, left backward
       T_CCR_L_FORWARD = motorCCR;
       T_CCR_R_BACKWARD = motorCCR;
 
-      T_CCR_L_BACKWARD = L_SPEED;
-      T_CCR_R_FORWARD = R_SPEED;
+      T_CCR_L_BACKWARD = 100;
+      T_CCR_R_FORWARD = 50;
     } else if (right) {
       // left forward, right backward
       T_CCR_L_BACKWARD = motorCCR;
       T_CCR_R_FORWARD = motorCCR;
 
-      T_CCR_L_FORWARD = L_SPEED;
-      T_CCR_R_BACKWARD = R_SPEED;
+      T_CCR_L_FORWARD = 100;
+      T_CCR_R_BACKWARD = 50;
     } else {
       // both forward, it's a win!
       T_CCR_L_BACKWARD = motorCCR;
       T_CCR_R_BACKWARD = motorCCR;
 
-      T_CCR_L_FORWARD = L_SPEED + 50;
-      T_CCR_R_FORWARD = R_SPEED + 50;
+      T_CCR_L_FORWARD = L_SPEED;
+      T_CCR_R_FORWARD = R_SPEED;
+
+      ms_delay(125U);
+      stopMotors();
+      // ms_delay(75);
     }
 
-    ms_delay(100U);
+    ms_delay(50);
   }
 
   return 0;
